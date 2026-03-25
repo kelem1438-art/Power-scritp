@@ -1,98 +1,121 @@
--- POWER SCRIPT (Ultra Edition)
+-- POWER SCRIPT ULTRA v3.0 (FINAL FIX)
 local Player = game.Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
-local Mouse = Player:GetMouse()
 
--- Default Ayarlar
+-- Settings
 local SpeedValue = 16
 local JumpValue = 50
-local Flying = false
-local Noclip = false
-local FlySpeed = 50
+local Flying, Noclip, SpinBot, PlatformActive = false, false, false, false
 
--- UI YARADILMASI (Böyük RGB Border)
+-- UI CONTAINER
 local ScreenGui = Instance.new("ScreenGui", Player:WaitForChild("PlayerGui"))
 ScreenGui.Name = "PowerScriptUI"
 ScreenGui.ResetOnSpawn = false
 
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 350, 0, 480)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -240)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-MainFrame.BorderSizePixel = 8 -- Çox qalın tüllər (border)
-MainFrame.Visible = false
-MainFrame.Active = true
-MainFrame.Draggable = true
+-- MOVABLE ROUND BUTTON (The Toggle)
+local ToggleButton = Instance.new("TextButton", ScreenGui)
+ToggleButton.Size = UDim2.new(0, 60, 0, 60)
+ToggleButton.Position = UDim2.new(0.5, -30, 0.1, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleButton.Text = "POWER" -- Power logo text
+ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 12
+ToggleButton.ZIndex = 10
 
--- RGB Border Animasiyası
+local UICorner = Instance.new("UICorner", ToggleButton)
+UICorner.CornerRadius = UDim.new(1, 0)
+
+local UIBorder = Instance.new("UIStroke", ToggleButton)
+UIBorder.Thickness = 3
+UIBorder.Color = Color3.new(1, 1, 1)
+
+-- Dragging Logic
+local dragging, dragInput, dragStart, startPos
+ToggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleButton.Position
+    end
+end)
+ToggleButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+end)
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        ToggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
+
+-- MAIN PANEL
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 300, 0, 450)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -225)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 10 -- Ultra RGB Border
+MainFrame.Visible = false
+
+-- RGB Border Logic
 task.spawn(function()
     while true do
         for i = 0, 1, 0.005 do
             MainFrame.BorderColor3 = Color3.fromHSV(i, 1, 1)
+            UIBorder.Color = Color3.fromHSV(i, 1, 1)
             task.wait(0.01)
         end
     end
 end)
 
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 60)
-Title.Text = "Power Script" -- Tam istədiyin ad
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Text = "Power Script"
 Title.TextColor3 = Color3.new(1, 1, 1)
-Title.TextSize = 28
+Title.TextSize = 24
 Title.Font = Enum.Font.GothamBold
 Title.BackgroundTransparency = 1
 
--- 1. SPEED (Yazı ilə)
-local SpeedBox = Instance.new("TextBox", MainFrame)
-SpeedBox.Size = UDim2.new(0, 250, 0, 45)
-SpeedBox.Position = UDim2.new(0.5, -125, 0, 80)
-SpeedBox.PlaceholderText = "Speed (Məs: 100)"
-SpeedBox.Text = ""
-SpeedBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-SpeedBox.TextColor3 = Color3.new(1, 1, 1)
-SpeedBox.FocusLost:Connect(function() SpeedValue = tonumber(SpeedBox.Text) or 16 end)
-
--- 2. JUMP (Yazı ilə)
-local JumpBox = Instance.new("TextBox", MainFrame)
-JumpBox.Size = UDim2.new(0, 250, 0, 45)
-JumpBox.Position = UDim2.new(0.5, -125, 0, 140)
-JumpBox.PlaceholderText = "Jump (Məs: 100)"
-JumpBox.Text = ""
-JumpBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-JumpBox.TextColor3 = Color3.new(1, 1, 1)
-JumpBox.FocusLost:Connect(function() JumpValue = tonumber(JumpBox.Text) or 50 end)
-
--- 3. FLY & NOCLIP & ESP (Düymələr RGB Borderli)
-local function CreateButton(text, pos, callback)
-    local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0, 250, 0, 45)
-    btn.Position = pos
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.BorderSizePixel = 2
-    btn.MouseButton1Click:Connect(callback)
-    return btn
+-- Inputs & Buttons (English)
+local function AddInput(text, pos, callback)
+    local box = Instance.new("TextBox", MainFrame)
+    box.Size = UDim2.new(0, 240, 0, 35)
+    box.Position = pos
+    box.PlaceholderText = text
+    box.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    box.TextColor3 = Color3.new(1,1,1)
+    box.FocusLost:Connect(function() callback(tonumber(box.Text)) end)
 end
 
-CreateButton("FLY (W Hərəkət)", UDim2.new(0.5, -125, 0, 200), function()
+AddInput("Set Speed", UDim2.new(0.5, -120, 0, 70), function(v) SpeedValue = v or 16 end)
+AddInput("Set Jump", UDim2.new(0.5, -120, 0, 115), function(v) JumpValue = v or 50 end)
+
+local function AddBtn(text, pos, callback)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0, 240, 0, 40)
+    btn.Position = pos
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.MouseButton1Click:Connect(callback)
+end
+
+AddBtn("FLY (Hold W)", UDim2.new(0.5, -120, 0, 170), function()
     Flying = not Flying
     if Flying then
         local bv = Instance.new("BodyVelocity", Player.Character.HumanoidRootPart)
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bv.Velocity = Vector3.new(0,0,0)
-        bv.Name = "PowerFly"
         task.spawn(function()
             while Flying do
-                local cam = workspace.CurrentCamera
-                local dir = Vector3.new(0,0,0)
-                if UIS:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
-                bv.Velocity = dir * FlySpeed
+                bv.Velocity = UIS:IsKeyDown(Enum.KeyCode.W) and workspace.CurrentCamera.CFrame.LookVector * 50 or Vector3.new(0,0,0)
                 task.wait()
             end
             bv:Destroy()
@@ -100,41 +123,41 @@ CreateButton("FLY (W Hərəkət)", UDim2.new(0.5, -125, 0, 200), function()
     end
 end)
 
-CreateButton("NOCLIP (Aktiv)", UDim2.new(0.5, -125, 0, 260), function() Noclip = not Noclip end)
-
-CreateButton("RGB ESP", UDim2.new(0.5, -125, 0, 320), function()
+AddBtn("NOCLIP", UDim2.new(0.5, -120, 0, 220), function() Noclip = not Noclip end)
+AddBtn("SPIN BOT", UDim2.new(0.5, -120, 0, 270), function() SpinBot = not SpinBot end)
+AddBtn("PLATFORM", UDim2.new(0.5, -120, 0, 320), function() PlatformActive = not PlatformActive end)
+AddBtn("RGB ESP", UDim2.new(0.5, -120, 0, 370), function()
     for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= Player and v.Character then
-            local highlight = Instance.new("Highlight", v.Character)
-            highlight.OutlineThickness = 4
-            task.spawn(function()
-                while highlight.Parent do
-                    for i = 0, 1, 0.01 do
-                        highlight.OutlineColor = Color3.fromHSV(i, 1, 1)
-                        task.wait(0.05)
-                    end
-                end
-            end)
+        if v ~= Player and v.Character and not v.Character:FindFirstChild("Highlight") then
+            local hl = Instance.new("Highlight", v.Character)
+            task.spawn(function() while hl.Parent do for i=0,1,0.01 do hl.OutlineColor=Color3.fromHSV(i,1,1) task.wait(0.05) end end end)
         end
     end
 end)
 
--- SISTEM DÖNGÜSÜ
-RS.Stepped:Connect(function()
-    if Player.Character and Player.Character:FindFirstChild("Humanoid") then
-        Player.Character.Humanoid.WalkSpeed = SpeedValue
-        Player.Character.Humanoid.JumpPower = JumpValue
-        if Noclip then
-            for _, p in pairs(Player.Character:GetDescendants()) do
-                if p:IsA("BasePart") then p.CanCollide = false end
+-- Main Loop (Fixing Speed & Jump)
+RS.Heartbeat:Connect(function()
+    pcall(function()
+        local Char = Player.Character
+        if Char and Char:FindFirstChild("Humanoid") then
+            Char.Humanoid.WalkSpeed = SpeedValue
+            Char.Humanoid.JumpPower = JumpValue
+            
+            if Noclip then
+                for _, p in pairs(Char:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = false end
+                end
+            end
+            if SpinBot then
+                Char.HumanoidRootPart.CFrame = Char.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(50), 0)
+            end
+            if PlatformActive and Char.Humanoid.Jump then
+                local p = Instance.new("Part", workspace)
+                p.Size = Vector3.new(6, 1, 6)
+                p.CFrame = Char.HumanoidRootPart.CFrame * CFrame.new(0, -3.5, 0)
+                p.Anchored = true
+                game:GetService("Debris"):AddItem(p, 1)
             end
         end
-    end
-end)
-
--- CTRL PANELİ AÇIR
-UIS.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.LeftControl then
-        MainFrame.Visible = not MainFrame.Visible
-    end
+    end)
 end)
