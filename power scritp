@@ -1,97 +1,89 @@
--- POWER SCRIPT v1.2 (Ultra RGB Edition)
+-- POWER SCRIPT (Ultra Edition)
 local Player = game.Players.LocalPlayer
-local Mouse = Player:GetMouse()
+local Character = Player.Character or Player.CharacterAdded:Wait()
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
+local Mouse = Player:GetMouse()
 
--- Ayarlar
+-- Default Ayarlar
 local SpeedValue = 16
 local JumpValue = 50
 local Flying = false
 local Noclip = false
 local FlySpeed = 50
 
--- UI YARADILMASI
+-- UI YARADILMASI (Böyük RGB Border)
 local ScreenGui = Instance.new("ScreenGui", Player:WaitForChild("PlayerGui"))
 ScreenGui.Name = "PowerScriptUI"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 350, 0, 450)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.BorderSizePixel = 6
-MainFrame.Draggable = true
+MainFrame.Size = UDim2.new(0, 350, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BorderSizePixel = 8 -- Çox qalın tüllər (border)
+MainFrame.Visible = false
 MainFrame.Active = true
-MainFrame.Visible = false -- CTRL ilə açılacaq
+MainFrame.Draggable = true
 
--- RGB BORDER EFFEKTİ (Qalın və Rəngli)
+-- RGB Border Animasiyası
 task.spawn(function()
     while true do
         for i = 0, 1, 0.005 do
             MainFrame.BorderColor3 = Color3.fromHSV(i, 1, 1)
-            task.wait(0.02)
+            task.wait(0.01)
         end
     end
 end)
 
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 50)
-Title.Text = "POWER SCRIPT [CTRL]"
+Title.Size = UDim2.new(1, 0, 0, 60)
+Title.Text = "Power Script" -- Tam istədiyin ad
 Title.TextColor3 = Color3.new(1, 1, 1)
-Title.TextSize = 22
+Title.TextSize = 28
 Title.Font = Enum.Font.GothamBold
 Title.BackgroundTransparency = 1
 
--- SÜRAT (SPEED) YAZI İLƏ
+-- 1. SPEED (Yazı ilə)
 local SpeedBox = Instance.new("TextBox", MainFrame)
-SpeedBox.Size = UDim2.new(0, 200, 0, 40)
-SpeedBox.Position = UDim2.new(0.5, -100, 0, 70)
-SpeedBox.PlaceholderText = "Sürət (məs: 100)"
+SpeedBox.Size = UDim2.new(0, 250, 0, 45)
+SpeedBox.Position = UDim2.new(0.5, -125, 0, 80)
+SpeedBox.PlaceholderText = "Speed (Məs: 100)"
 SpeedBox.Text = ""
-SpeedBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
-SpeedBox.TextColor3 = Color3.new(1,1,1)
+SpeedBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+SpeedBox.TextColor3 = Color3.new(1, 1, 1)
+SpeedBox.FocusLost:Connect(function() SpeedValue = tonumber(SpeedBox.Text) or 16 end)
 
-SpeedBox.FocusLost:Connect(function()
-    SpeedValue = tonumber(SpeedBox.Text) or 16
-end)
-
--- HOPDANMA (JUMP) YAZI İLƏ
+-- 2. JUMP (Yazı ilə)
 local JumpBox = Instance.new("TextBox", MainFrame)
-JumpBox.Size = UDim2.new(0, 200, 0, 40)
-JumpBox.Position = UDim2.new(0.5, -100, 0, 120)
-JumpBox.PlaceholderText = "Tullanma (məs: 100)"
+JumpBox.Size = UDim2.new(0, 250, 0, 45)
+JumpBox.Position = UDim2.new(0.5, -125, 0, 140)
+JumpBox.PlaceholderText = "Jump (Məs: 100)"
 JumpBox.Text = ""
-JumpBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
-JumpBox.TextColor3 = Color3.new(1,1,1)
+JumpBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+JumpBox.TextColor3 = Color3.new(1, 1, 1)
+JumpBox.FocusLost:Connect(function() JumpValue = tonumber(JumpBox.Text) or 50 end)
 
-JumpBox.FocusLost:Connect(function()
-    JumpValue = tonumber(JumpBox.Text) or 50
-end)
+-- 3. FLY & NOCLIP & ESP (Düymələr RGB Borderli)
+local function CreateButton(text, pos, callback)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0, 250, 0, 45)
+    btn.Position = pos
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.BorderSizePixel = 2
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
 
--- DÖNGÜ (SPEED/JUMP/NOCLIP ÜÇÜN)
-RS.RenderStepped:Connect(function()
-    if Player.Character and Player.Character:FindFirstChild("Humanoid") then
-        Player.Character.Humanoid.WalkSpeed = SpeedValue
-        Player.Character.Humanoid.JumpPower = JumpValue
-    end
-    
-    if Noclip and Player.Character then
-        for _, part in pairs(Player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
-    end
-end)
-
--- FLY FUNKSİYASI (Sənin istədiyin: W ilə hərəkət)
-local function ToggleFly()
+CreateButton("FLY (W Hərəkət)", UDim2.new(0.5, -125, 0, 200), function()
     Flying = not Flying
     if Flying then
         local bv = Instance.new("BodyVelocity", Player.Character.HumanoidRootPart)
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         bv.Velocity = Vector3.new(0,0,0)
-        bv.Name = "FlyVelocity"
-        
+        bv.Name = "PowerFly"
         task.spawn(function()
             while Flying do
                 local cam = workspace.CurrentCamera
@@ -100,20 +92,49 @@ local function ToggleFly()
                 if UIS:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
                 if UIS:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
                 if UIS:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
-                
                 bv.Velocity = dir * FlySpeed
                 task.wait()
             end
             bv:Destroy()
         end)
     end
-end
+end)
 
--- CTRL İLƏ PANELİ AÇIB-BAĞLAMAQ
+CreateButton("NOCLIP (Aktiv)", UDim2.new(0.5, -125, 0, 260), function() Noclip = not Noclip end)
+
+CreateButton("RGB ESP", UDim2.new(0.5, -125, 0, 320), function()
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= Player and v.Character then
+            local highlight = Instance.new("Highlight", v.Character)
+            highlight.OutlineThickness = 4
+            task.spawn(function()
+                while highlight.Parent do
+                    for i = 0, 1, 0.01 do
+                        highlight.OutlineColor = Color3.fromHSV(i, 1, 1)
+                        task.wait(0.05)
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- SISTEM DÖNGÜSÜ
+RS.Stepped:Connect(function()
+    if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+        Player.Character.Humanoid.WalkSpeed = SpeedValue
+        Player.Character.Humanoid.JumpPower = JumpValue
+        if Noclip then
+            for _, p in pairs(Player.Character:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
+            end
+        end
+    end
+end)
+
+-- CTRL PANELİ AÇIR
 UIS.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.LeftControl then
         MainFrame.Visible = not MainFrame.Visible
     end
 end)
-
-print("Power Script Aktivdir! Paneli açmaq üçün CTRL bas.")
